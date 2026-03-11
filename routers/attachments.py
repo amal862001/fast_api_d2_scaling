@@ -61,9 +61,9 @@ async def upload_attachment(
             file_size     = len(contents)
         )
 
-        repo.db.add(attachment)        # ← repo.db not db
-        await repo.db.commit()         # ← repo.db not db
-        await repo.db.refresh(attachment)  # ← repo.db not db
+        repo.db.add(attachment)        # ← repo.db 
+        await repo.db.commit()         
+        await repo.db.refresh(attachment)  
 
         return {
             "id"          : attachment.id,
@@ -88,13 +88,13 @@ async def list_attachments(
     unique_key   : int,
     repo         : ComplaintRepository = Depends(get_complaint_repo),
     current_user : PlatformUser        = Depends(get_current_user)
-    # ← remove db: AsyncSession = Depends(get_db)
+    # remove db: AsyncSession = Depends(get_db)
 ):
     complaint = await repo.get_by_id(unique_key, current_user.agency_code)
     if complaint is None:
         raise HTTPException(status_code=404, detail="Complaint not found")
 
-    result = await repo.db.execute(    # ← repo.db
+    result = await repo.db.execute(    # repo.db
         select(Attachment).where(
             Attachment.complaint_key == unique_key,
             Attachment.agency_code   == current_user.agency_code
