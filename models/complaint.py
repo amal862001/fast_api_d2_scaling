@@ -1,4 +1,4 @@
-from sqlalchemy import Column, BigInteger, String, DateTime, Float, Text, Index, Identity
+from sqlalchemy import Column, BigInteger, String, DateTime, Float, Text, Index
 from sqlalchemy.orm import declarative_base
 from models.user import Base
 
@@ -6,7 +6,7 @@ class Complaint(Base):
     __tablename__ = "nyc_311_service_requests"
 
     # Primary Key
-    unique_key                     = Column(BigInteger, primary_key=True)
+    unique_key                     = Column(BigInteger, primary_key=True, autoincrement=True)
 
     # Required Fields
     created_date                   = Column(DateTime, nullable=False)

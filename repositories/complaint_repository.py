@@ -5,6 +5,7 @@ from models.complaint import Complaint
 from datetime import datetime
 from typing import Optional
 from sqlalchemy import select, func, distinct, Integer
+from typing import AsyncGenerator
 
 
 class ComplaintRepository:
@@ -63,7 +64,7 @@ class ComplaintRepository:
         result = await self.db.execute(query)
         return result.scalars().all()
 
-    # ── List complaints by agency ─────────────────────────────
+    # List complaints by agency 
 
     async def list_by_agency(self, agency_code: str, limit: int = 50) -> list[Complaint]:
         result = await self.db.execute(
@@ -149,6 +150,48 @@ class ComplaintRepository:
             }
             for row in result.fetchall()
         ]
+    
+
+    # Stream complaints
+
+    async def stream_complaints(
+        self,
+        agency_code    : str,
+        borough        : Optional[str]      = None,
+        complaint_type : Optional[str]      = None,
+        status         : Optional[str]      = None,
+        start_date     : Optional[datetime] = None,
+        end_date       : Optional[datetime] = None,
+        batch_size     : int                = 500
+    ) -> AsyncGenerator:
+
+        offset = 0
+
+        while True:
+            query = select(Complaint).where(Complaint.agency == agency_code)
+
+            if borough:
+                query = query.where(Complaint.borough == borough.upper())
+            if complaint_type:
+                query = query.where(Complaint.complaint_type == complaint_type)
+            if status:
+                query = query.where(Complaint.status == status)
+            if start_date:
+                query = query.where(Complaint.created_date >= start_date)
+            if end_date:
+                query = query.where(Complaint.created_date <= end_date)
+
+            query  = query.offset(offset).limit(batch_size)
+            result = await self.db.execute(query)
+            batch  = result.scalars().all()
+
+            if not batch:
+                break            # no more rows — stop
+
+            for row in batch:
+                yield row        # yield one row at a time to the generator
+
+            offset += batch_size
 
 
     
