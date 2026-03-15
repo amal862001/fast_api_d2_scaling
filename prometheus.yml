@@ -1,0 +1,9 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: "nyc311_api"
+    static_configs:
+      - targets: ["app:8000"]    # app = Docker service name
+    metrics_path: "/metrics"

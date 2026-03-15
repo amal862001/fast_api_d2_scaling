@@ -12,40 +12,57 @@ from services.cache_service import get_redis
 from routers.websocket import router as ws_router
 import asyncio
 from services.stats_service import stats_refresh_loop, refresh_live_stats
+from middleware.rate_limit import RateLimitMiddleware
+from routers.api_keys import router as api_keys_router
+from routers.reports import router as reports_router
+from routers.google_auth import router as google_auth_router
+from starlette.middleware.sessions import SessionMiddleware
+from prometheus_fastapi_instrumentator import Instrumentator
+from services.logging_service import configure_logging, get_logger
+from middleware.request_id import RequestIDMiddleware
+from routers.health import router as health_router
+from routers.reports import router as reports_router
+
+
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # startup - test database connection    ``
     async with engine.connect() as conn:
-        await conn.execute(text("SELECT 1"))
-        print("Database connected")
+        result = await conn.execute(text("SELECT COUNT(*) FROM nyc_311_service_requests"))
+        row_count = result.scalar()
 
-    # check Redis
     redis = await get_redis()
     await redis.ping()
-    print("Redis connected")    
 
-    # run stats once immediately on startup
     await refresh_live_stats()
-    print("Live stats initialized")
-
-    # start background loop — runs every 60s
     task = asyncio.create_task(stats_refresh_loop())
+
+    logger.info(
+    "startup",
+    dataset_rows    = row_count,
+    redis_connected = True,
+    db_connected    = True,
+    )
 
     yield
 
-    # shutdown — cancel background task cleanly
     task.cancel()
     try:
         await task
     except asyncio.CancelledError:
         pass
-     
-       
+
     await engine.dispose()
-    print("Shutdown complete")
+    logger.info("shutdown")
+
     
+
+# configure structured logging before app starts
+configure_logging()
+logger = get_logger("main")
+
+
 
 app = FastAPI(
     title="NYC 311 API",
@@ -55,18 +72,28 @@ app = FastAPI(
 )
 
 
+app.add_middleware(RequestIDMiddleware)
+app.add_middleware(RateLimitMiddleware)
+app.add_middleware(SessionMiddleware, secret_key=settings.SECRET_KEY)
 
 
+# Prometheues instrumentation
+Instrumentator().instrument(app).expose(app)
 
 # register exception handlers
 register_exception_handlers(app)
 
-# register routers
+# Routers
+app.include_router(health_router)
+app.include_router(reports_router)
+app.include_router(google_auth_router)
+app.include_router(api_keys_router)
 app.include_router(auth_router)
 app.include_router(complaints_router)
 app.include_router(analytics_router)
 app.include_router(attachments_router)
 app.include_router(ws_router)
+
 
 
 @app.get("/", tags=["Health Check"])

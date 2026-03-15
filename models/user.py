@@ -2,6 +2,7 @@ from sqlalchemy import Column, Integer, String, DateTime
 from datetime import datetime, timezone 
 from sqlalchemy.orm import DeclarativeBase
 
+
 class Base(DeclarativeBase):
     pass
 
@@ -16,3 +17,4 @@ class PlatformUser(Base):
     agency_code     = Column(String, nullable=False)
     role            = Column(String, nullable=False, default="staff")
     created_at      = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+

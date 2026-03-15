@@ -5,7 +5,7 @@ from models.user import Base
 from models.audit_log import AuditLog
 from models.attachment import Attachment
 import models.complaint
-
+from models.api_key import ApiKey
 
 
 from alembic import context

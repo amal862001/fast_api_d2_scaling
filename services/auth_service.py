@@ -23,15 +23,24 @@ def verify_password(plain: str, hashed: str) -> bool:
 
 
 # JWT helpers 
+ROLE_SCOPES = {
+    "staff"   : ["complaints:read"],
+    "analyst" : ["complaints:read", "complaints:export"],
+    "admin"   : ["complaints:read", "complaints:export", "complaints:write", "admin"],
+}
+
 
 def create_access_token(user: PlatformUser) -> str:
+    scopes = ROLE_SCOPES.get(user.role, ["complaints:read"])
     payload = {
         "sub"         : str(user.id),
         "agency_code" : user.agency_code,
         "role"        : user.role,
+        "scopes"      : scopes,          
         "exp"         : datetime.now(timezone.utc) + timedelta(minutes=30)
     }
     return jwt.encode(payload, settings.SECRET_KEY, algorithm="HS256")
+
 
 
 def decode_access_token(token: str) -> dict:

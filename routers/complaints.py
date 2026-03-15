@@ -3,7 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Optional
 from datetime import datetime
 from database import get_db
-from dependencies import get_current_user, get_complaint_repo
+from dependencies import get_current_user, get_complaint_repo, require_scope
 from models.user import PlatformUser
 from repositories.complaint_repository import ComplaintRepository
 from schemas.complaint_schema import ComplaintSummary, ComplaintDetail, ComplaintCreate, ComplaintUpdate
@@ -55,7 +55,7 @@ async def get_complaints(
     }
 
     key    = key_complaints(current_user.agency_code, filters)
-    cached = await cache_get(key)
+    cached = await cache_get(key, endpoint="complaints")
 
     if cached:
         response.headers["X-Cache"] = "HIT"
@@ -176,7 +176,7 @@ async def update_complaint_status(
 
 # Export complaints as CSV — stream response, invalidate cache
 
-@router.get("/complaints/export")
+@router.get("/export")
 async def export_complaints(
     borough        : Optional[str]      = Query(None),
     complaint_type : Optional[str]      = Query(None),
@@ -184,7 +184,7 @@ async def export_complaints(
     start_date     : Optional[datetime] = Query(None),
     end_date       : Optional[datetime] = Query(None),
     repo           : ComplaintRepository = Depends(get_complaint_repo),
-    current_user   : PlatformUser        = Depends(get_current_user)
+    current_user   : PlatformUser        = Depends(require_scope("complaints:export"))
 ):
     # CSV generator
     async def csv_generator():

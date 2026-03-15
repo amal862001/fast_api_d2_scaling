@@ -12,7 +12,7 @@ session = Session()
 # password hasher
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-# ── Agency definitions ────────────────────────────────────────
+# Agency definitions
 AGENCIES = [
     "NYPD", "DOT", "DSNY", "DEP", "HPD",
     "FDNY", "DOB", "DHS", "DPR", "DOITT",
@@ -46,7 +46,7 @@ LAST_NAMES = [
     "Edwards",  "Collins",  "Stewart",  "Morris",   "Rogers",
 ]
 
-# ── Original 10 seeded users ──────────────────────────────────
+# Original 10 seeded users
 original_users = [
     {"full_name": "James Carter",   "email": "james@nypd.nyc.gov",   "agency_code": "NYPD",  "role": "staff"},
     {"full_name": "Maria Lopez",    "email": "maria@dot.nyc.gov",    "agency_code": "DOT",   "role": "staff"},
@@ -60,7 +60,7 @@ original_users = [
     {"full_name": "Admin User",     "email": "admin@doitt.nyc.gov",  "agency_code": "DOITT", "role": "admin"},
 ]
 
-# ── Generate 90 additional users ──────────────────────────────
+# Generate 90 additional users
 generated_users = []
 used_emails     = {u["email"] for u in original_users}
 
@@ -88,7 +88,7 @@ for i in range(90):
 
 all_users = original_users + generated_users
 
-# ── Seed all 100 users ────────────────────────────────────────
+# Seed all 100 users 
 seeded = 0
 for u in all_users:
     # skip if email already exists in DB
@@ -108,4 +108,4 @@ for u in all_users:
 
 session.commit()
 session.close()
-print(f"{seeded} users seeded ✅  ({len(all_users)} total attempted)")
+print(f"{seeded} users seeded  ({len(all_users)} total attempted)")

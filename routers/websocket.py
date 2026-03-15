@@ -2,6 +2,8 @@ import json
 from datetime import datetime
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from services.cache_service import get_redis
+from services.metrics_service import active_ws_connections
+
 
 router = APIRouter(tags=["WebSocket"])
 
@@ -38,6 +40,7 @@ async def build_live_payload() -> dict:
 @router.websocket("/ws/live")
 async def live_dashboard(websocket: WebSocket):
     await websocket.accept()
+    active_ws_connections.inc()          # ← increment on connect
     client = websocket.client.host
     print(f"WebSocket connected: {client}")
 
@@ -45,13 +48,11 @@ async def live_dashboard(websocket: WebSocket):
         while True:
             payload = await build_live_payload()
             await websocket.send_json(payload)
-
-            # wait 3 seconds before next push
-            import asyncio
             await asyncio.sleep(3)
 
     except WebSocketDisconnect:
         print(f"WebSocket disconnected: {client}")
 
     finally:
+        active_ws_connections.dec()      # ← decrement on disconnect
         print(f"WebSocket closed: {client}")

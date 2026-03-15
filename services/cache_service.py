@@ -3,6 +3,7 @@ import hashlib
 from typing import Optional
 import redis.asyncio as aioredis
 from config import settings
+from services.metrics_service import cache_hits_total, cache_misses_total
 
 
 # Redis client singleton
@@ -23,16 +24,18 @@ async def get_redis() -> aioredis.Redis:
 
 # Generic cache helpers
 
-async def cache_get(key: str) -> Optional[dict]:
+async def cache_get(key: str, endpoint: str = "unknown") -> Optional[dict]:
     try:
         redis = await get_redis()
         value = await redis.get(key)
         if value is None:
+            cache_misses_total.labels(endpoint=endpoint).inc()
             return None
+        cache_hits_total.labels(endpoint=endpoint).inc()
         return json.loads(value)
     except Exception as e:
         print(f"Cache GET failed: {e}")
-        return None     # never let cache failure break the request
+        return None
 
 
 async def cache_set(key: str, value: dict, ttl_seconds: int) -> None:

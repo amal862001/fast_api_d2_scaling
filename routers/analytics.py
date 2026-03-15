@@ -18,7 +18,7 @@ async def get_complaint_types(
     current_user : PlatformUser        = Depends(get_current_user)
 ):
     key    = key_complaint_types(current_user.agency_code)
-    cached = await cache_get(key)
+    cached = await cache_get(key, endpoint="complaint_types")
 
     if cached:
         response.headers["X-Cache"] = "HIT"
@@ -42,7 +42,7 @@ async def get_borough_stats(
     current_user : PlatformUser        = Depends(get_current_user)
 ):
     key    = key_borough_stats(current_user.agency_code)
-    cached = await cache_get(key)
+    cached = await cache_get(key, endpoint="borough_stats")
 
     if cached:
         response.headers["X-Cache"] = "HIT"
