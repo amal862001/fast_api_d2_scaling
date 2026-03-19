@@ -21,6 +21,7 @@ def register_exception_handlers(app: FastAPI):
             }
         )
 
+
     # Handle database errors (500) 
     @app.exception_handler(SQLAlchemyError)
     async def sqlalchemy_exception_handler(request: Request, exc: SQLAlchemyError):

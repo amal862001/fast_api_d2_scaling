@@ -3,6 +3,7 @@ from datetime import datetime
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from services.cache_service import get_redis
 from services.metrics_service import active_ws_connections
+import asyncio
 
 
 router = APIRouter(tags=["WebSocket"])

@@ -1120,7 +1120,7 @@ nyc311/
 | Day 4 | WebSocket + CSV streaming + Rate limiting + Final load test | ✅ |
 | Day 5 | API Keys + Google OAuth + ARQ jobs + Observability + 5-service Docker | ✅ |
 
-**Final stack: 5 Docker services, 16 API endpoints, 494,063 rows, 244× performance improvement, 0% failure rate**
+**Final stack: 5 Docker services, 16 API endpoints, 494,063 rows, 14.6× performance improvement, 0% failure rate**
 
 ---
 

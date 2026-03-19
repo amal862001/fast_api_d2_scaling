@@ -123,3 +123,5 @@ class ComplaintCreate(BaseModel):
 class ComplaintUpdate(BaseModel):
     status                 : Optional[str] = None
     resolution_description : Optional[str] = None
+
+    

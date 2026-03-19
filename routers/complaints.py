@@ -98,6 +98,75 @@ async def get_complaints(
 
     return serialized
 
+
+
+# Export complaints as CSV — stream response, invalidate cache
+
+@router.get("/export")
+async def export_complaints(
+    borough        : Optional[str]      = Query(None),
+    complaint_type : Optional[str]      = Query(None),
+    status         : Optional[str]      = Query(None),
+    start_date     : Optional[datetime] = Query(None),
+    end_date       : Optional[datetime] = Query(None),
+    repo           : ComplaintRepository = Depends(get_complaint_repo),
+    current_user   : PlatformUser        = Depends(require_scope("complaints:export"))
+):
+    # CSV generator
+    async def csv_generator():
+        # yield header row first
+        header = [
+            "unique_key", "created_date", "closed_date",
+            "agency", "agency_name", "complaint_type",
+            "descriptor", "location_type", "incident_zip",
+            "city", "borough", "status",
+            "resolution_description", "latitude",
+            "longitude", "resolution_action_updated_date"
+        ]
+        yield ",".join(header) + "\n"
+
+        # stream rows in batches of 500
+        async for row in repo.stream_complaints(
+            agency_code    = current_user.agency_code,
+            borough        = borough,
+            complaint_type = complaint_type,
+            status         = status,
+            start_date     = start_date,
+            end_date       = end_date,
+        ):
+            # build CSV row — handle None and commas in strings
+            values = [
+                str(row.unique_key),
+                str(row.created_date or ""),
+                str(row.closed_date or ""),
+                str(row.agency or ""),
+                str(row.agency_name or ""),
+                f'"{row.complaint_type or ""}"',   # quote strings that may have commas
+                f'"{row.descriptor or ""}"',
+                f'"{row.location_type or ""}"',
+                str(row.incident_zip or ""),
+                f'"{row.city or ""}"',
+                str(row.borough or ""),
+                str(row.status or ""),
+                f'"{row.resolution_description or ""}"',
+                str(row.latitude or ""),
+                str(row.longitude or ""),
+                str(row.resolution_action_updated_date or ""),
+            ]
+            yield ",".join(values) + "\n"
+
+    # filename with today's date
+    filename = f"complaints_{current_user.agency_code}_{date.today()}.csv"
+
+    return StreamingResponse(
+        content      = csv_generator(),
+        media_type   = "text/csv",
+        headers      = {
+            "Content-Disposition": f"attachment; filename={filename}"
+        }
+    )
+
+    
 # Get single complaint
 
 @router.get("/{unique_key}", response_model=ComplaintDetail)
@@ -174,68 +243,6 @@ async def update_complaint_status(
     return complaint
 
 
-# Export complaints as CSV — stream response, invalidate cache
+  
 
-@router.get("/export")
-async def export_complaints(
-    borough        : Optional[str]      = Query(None),
-    complaint_type : Optional[str]      = Query(None),
-    status         : Optional[str]      = Query(None),
-    start_date     : Optional[datetime] = Query(None),
-    end_date       : Optional[datetime] = Query(None),
-    repo           : ComplaintRepository = Depends(get_complaint_repo),
-    current_user   : PlatformUser        = Depends(require_scope("complaints:export"))
-):
-    # CSV generator
-    async def csv_generator():
-        # yield header row first
-        header = [
-            "unique_key", "created_date", "closed_date",
-            "agency", "agency_name", "complaint_type",
-            "descriptor", "location_type", "incident_zip",
-            "city", "borough", "status",
-            "resolution_description", "latitude",
-            "longitude", "resolution_action_updated_date"
-        ]
-        yield ",".join(header) + "\n"
 
-        # stream rows in batches of 500
-        async for row in repo.stream_complaints(
-            agency_code    = current_user.agency_code,
-            borough        = borough,
-            complaint_type = complaint_type,
-            status         = status,
-            start_date     = start_date,
-            end_date       = end_date,
-        ):
-            # build CSV row — handle None and commas in strings
-            values = [
-                str(row.unique_key),
-                str(row.created_date or ""),
-                str(row.closed_date or ""),
-                str(row.agency or ""),
-                str(row.agency_name or ""),
-                f'"{row.complaint_type or ""}"',   # quote strings that may have commas
-                f'"{row.descriptor or ""}"',
-                f'"{row.location_type or ""}"',
-                str(row.incident_zip or ""),
-                f'"{row.city or ""}"',
-                str(row.borough or ""),
-                str(row.status or ""),
-                f'"{row.resolution_description or ""}"',
-                str(row.latitude or ""),
-                str(row.longitude or ""),
-                str(row.resolution_action_updated_date or ""),
-            ]
-            yield ",".join(values) + "\n"
-
-    # filename with today's date
-    filename = f"complaints_{current_user.agency_code}_{date.today()}.csv"
-
-    return StreamingResponse(
-        content      = csv_generator(),
-        media_type   = "text/csv",
-        headers      = {
-            "Content-Disposition": f"attachment; filename={filename}"
-        }
-    )

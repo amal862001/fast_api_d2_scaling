@@ -13,7 +13,7 @@ WINDOW_SECONDS        = 60
 
 # Paths that skip rate limiting
 EXEMPT_PATHS = {"/", "/docs", "/openapi.json", "/redoc",
-                "/metrics", "/health/live", "/health/ready"}
+                "/metrics", "/health/live", "/health/ready","/auth/login"}
 
 
 class RateLimitMiddleware(BaseHTTPMiddleware):
