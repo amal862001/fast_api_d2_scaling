@@ -756,7 +756,6 @@ Retry-After:           60   (429 responses only)
 ### 5. locustfile.py — Updated for Final Load Test
 
 - [x] Added all 10 seeded users to `USERS` list
-- [x] Fixed password: `Password` → `Password123!`
 - [x] `on_start()` picks random user from `USERS` list — load spread across all agencies
 - [x] `self.agency` stores agency code extracted from email for debugging
 
