@@ -21,9 +21,10 @@ from prometheus_fastapi_instrumentator import Instrumentator
 from services.logging_service import configure_logging, get_logger
 from middleware.request_id import RequestIDMiddleware
 from routers.health import router as health_router
-from routers.reports import router as reports_router
 
-
+# configure structured logging before app starts
+configure_logging()
+logger = get_logger("main")
 
 
 @asynccontextmanager
@@ -39,10 +40,10 @@ async def lifespan(app: FastAPI):
     task = asyncio.create_task(stats_refresh_loop())
 
     logger.info(
-    "startup",
-    dataset_rows    = row_count,
-    redis_connected = True,
-    db_connected    = True,
+        "startup",
+        dataset_rows    = row_count,
+        redis_connected = True,
+        db_connected    = True,
     )
 
     yield
@@ -56,28 +57,19 @@ async def lifespan(app: FastAPI):
     await engine.dispose()
     logger.info("shutdown")
 
-    
-
-# configure structured logging before app starts
-configure_logging()
-logger = get_logger("main")
-
-
 
 app = FastAPI(
-    title="NYC 311 API",
-    description="Internal API for NYC agency staff to manage 311 complaints",
-    version="1.0.0",
-    lifespan=lifespan
+    title       = "NYC 311 API",
+    description = "Internal API for NYC agency staff to manage 311 complaints",
+    version     = "1.0.0",
+    lifespan    = lifespan
 )
-
 
 app.add_middleware(RequestIDMiddleware)
 app.add_middleware(RateLimitMiddleware)
 app.add_middleware(SessionMiddleware, secret_key=settings.SECRET_KEY)
 
-
-# Prometheues instrumentation
+# Prometheus instrumentation
 Instrumentator().instrument(app).expose(app)
 
 # register exception handlers
@@ -95,9 +87,6 @@ app.include_router(attachments_router)
 app.include_router(ws_router)
 
 
-
 @app.get("/", tags=["Health Check"])
 def root():
     return {"message": "NYC 311 API is running"}
-
-

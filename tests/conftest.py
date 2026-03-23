@@ -4,7 +4,7 @@ from datetime import datetime
 import httpx
 
 
-# Fake user factory 
+# Fake user factory
 # creates a PlatformUser object without touching the database
 
 @pytest.fixture
@@ -12,9 +12,10 @@ def staff_user():
     return PlatformUser(
         id           = 1,
         email        = "james@nypd.nyc.gov",
+        full_name    = "James NYPD",
+        hashed_password = "hashed",
         agency_code  = "NYPD",
         role         = "staff",
-        is_active    = True,
         created_at   = datetime.now().replace(tzinfo=None),
     )
 
@@ -23,9 +24,10 @@ def analyst_user():
     return PlatformUser(
         id           = 2,
         email        = "kevin@dpr.nyc.gov",
+        full_name    = "Kevin DPR",
+        hashed_password = "hashed",
         agency_code  = "DPR",
         role         = "analyst",
-        is_active    = True,
         created_at   = datetime.now().replace(tzinfo=None),
     )
 
@@ -34,15 +36,12 @@ def admin_user():
     return PlatformUser(
         id           = 3,
         email        = "admin@doitt.nyc.gov",
+        full_name    = "Admin DOITT",
+        hashed_password = "hashed",
         agency_code  = "DOITT",
         role         = "admin",
-        is_active    = True,
         created_at   = datetime.now().replace(tzinfo=None),
     )
-
-
-
-
 
 
 BASE_URL = "http://localhost:8000"
@@ -79,6 +78,4 @@ def analyst_token(client):
 
 # Auth header helper
 def auth_header(token):
-    return {"Authorization": f"Bearer {token}"} 
-
-
+    return {"Authorization": f"Bearer {token}"}

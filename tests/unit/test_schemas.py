@@ -1,6 +1,6 @@
 import pytest
 from pydantic import ValidationError
-from schemas.complaint_schema import ComplaintCreate, BoroughEnum
+from schemas.complaint_schema import ComplaintCreate, BoroughEnum  # noqa: F401
 
 
 # Tests

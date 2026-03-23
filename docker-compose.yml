@@ -2,7 +2,7 @@ services:
 
   db:
     image: postgres:15
-    container_name: nyc311_db
+    container_name: nyc311v2_db
     env_file: .env
     environment:
       POSTGRES_DB       : nyc_311
@@ -20,7 +20,7 @@ services:
 
   redis:
     image: redis:7-alpine
-    container_name: nyc311_redis
+    container_name: nyc311v2_redis
     ports:
       - "6379:6379"
     healthcheck:
@@ -31,7 +31,7 @@ services:
 
   app:
     build: .
-    container_name: nyc311_app
+    container_name: nyc311v2_app
     env_file: .env
     ports:
       - "8000:8000"
@@ -51,6 +51,7 @@ services:
 
   arq_worker:
     build: .
+    container_name: nyc311v2_worker
     command: ["python", "-m", "arq", "tasks.settings.WorkerSettings"]
     env_file: .env
     volumes:
@@ -59,8 +60,6 @@ services:
       db:
         condition: service_healthy
       redis:
-        condition: service_healthy
-      app:
         condition: service_healthy
     healthcheck:
       test     : ["CMD", "python", "-c", "import arq; print('ok')"]
@@ -71,7 +70,7 @@ services:
 
   prometheus:
     image: prom/prometheus:latest
-    container_name: nyc311_prometheus
+    container_name: nyc311v2_prometheus
     ports:
       - "9090:9090"
     volumes:
@@ -92,10 +91,9 @@ services:
       retries  : 3
     restart: on-failure
 
-
   grafana:
     image: grafana/grafana:latest
-    container_name: nyc311_grafana
+    container_name: nyc311v2_grafana
     ports:
       - "3000:3000"
     environment:
@@ -107,9 +105,14 @@ services:
     depends_on:
       prometheus:
         condition: service_healthy
+    healthcheck:
+      test     : ["CMD-SHELL", "wget --spider -q http://localhost:3000/api/health || exit 1"]
+      interval : 10s
+      timeout  : 5s
+      retries  : 5
     restart: on-failure
 
 volumes:
   postgres_data:
   prometheus_data:
-  grafana_data:       
+  grafana_data:

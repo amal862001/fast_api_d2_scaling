@@ -21,14 +21,14 @@ class ComplaintSummary(BaseModel):
     unique_key     : int
     created_date   : datetime
     complaint_type : str
-    descriptor     : Optional[str]
+    descriptor     : Optional[str] = None
     borough        : str
     status         : str
     agency         : str
-    incident_zip   : Optional[str]
+    incident_zip   : Optional[str] = None
 
     class Config:
-        from_attributes = True      # Pydantic will read data from ORM objects using attribute access
+        from_attributes = True
 
 
 # Complaint Detail (full record - all 16 fields)
@@ -36,26 +36,26 @@ class ComplaintSummary(BaseModel):
 class ComplaintDetail(BaseModel):
     unique_key                     : int
     created_date                   : datetime
-    closed_date                    : Optional[datetime]
+    closed_date                    : Optional[datetime] = None
     agency                         : str
     agency_name                    : str
     complaint_type                 : str
-    descriptor                     : Optional[str]
-    location_type                  : Optional[str]
-    incident_zip                   : Optional[str]
-    city                           : Optional[str]
+    descriptor                     : Optional[str] = None
+    location_type                  : Optional[str] = None
+    incident_zip                   : Optional[str] = None
+    city                           : Optional[str] = None
     borough                        : str
     status                         : str
-    resolution_description         : Optional[str]
-    latitude                       : Optional[float]
-    longitude                      : Optional[float]
-    resolution_action_updated_date : Optional[datetime]
+    resolution_description         : Optional[str] = None
+    latitude                       : Optional[float] = None
+    longitude                      : Optional[float] = None
+    resolution_action_updated_date : Optional[datetime] = None
 
     class Config:
-        from_attributes = True 
+        from_attributes = True
 
 
-# Complaint Create 
+# Complaint Create
 
 class ComplaintCreate(BaseModel):
     complaint_type : str
@@ -67,17 +67,14 @@ class ComplaintCreate(BaseModel):
     latitude       : Optional[float] = None
     longitude      : Optional[float] = None
 
-    # Borough validator
     @field_validator("borough", mode="before")
     @classmethod
     def normalize_borough(cls, value):
         if value is None:
             raise ValueError("Borough is required")
 
-        # normalize to uppercase and strip whitespace
         normalized = str(value).strip().upper()
 
-        # map common variations
         valid = {
             "MANHATTAN"    : "MANHATTAN",
             "BROOKLYN"     : "BROOKLYN",
@@ -96,22 +93,18 @@ class ComplaintCreate(BaseModel):
 
         return valid[normalized]
 
-    # ZIP validator
     @field_validator("incident_zip", mode="before")
     @classmethod
     def normalize_zip(cls, value):
         if value is None:
             return None
 
-        # clean the value
         cleaned = str(value).strip()
 
-        # return None for known invalid values
         invalid_values = {"", "N/A", "n/a", "00000", "NA", "NONE", "NULL"}
         if cleaned in invalid_values:
             return None
 
-        # validate 5 digit format
         if not re.match(r"^\d{5}$", cleaned):
             return None
 
@@ -123,5 +116,3 @@ class ComplaintCreate(BaseModel):
 class ComplaintUpdate(BaseModel):
     status                 : Optional[str] = None
     resolution_description : Optional[str] = None
-
-    

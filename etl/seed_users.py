@@ -56,7 +56,7 @@ original_users = [
     {"full_name": "Emily Davis",    "email": "emily@fdny.nyc.gov",   "agency_code": "FDNY",  "role": "staff"},
     {"full_name": "Robert Wilson",  "email": "robert@dob.nyc.gov",   "agency_code": "DOB",   "role": "staff"},
     {"full_name": "Lisa Martinez",  "email": "lisa@dhs.nyc.gov",     "agency_code": "DHS",   "role": "staff"},
-    {"full_name": "Kevin Thompson", "email": "kevin@dpr.nyc.gov",    "agency_code": "DPR",   "role": "staff"},
+    {"full_name": "Kevin Thompson", "email": "kevin@dpr.nyc.gov",    "agency_code": "DPR",   "role": "analyst"},
     {"full_name": "Admin User",     "email": "admin@doitt.nyc.gov",  "agency_code": "DOITT", "role": "admin"},
 ]
 
@@ -99,7 +99,7 @@ for u in all_users:
     user = PlatformUser(
         full_name       = u["full_name"],
         email           = u["email"],
-        hashed_password = pwd_context.hash("Password123!"),
+        hashed_password = pwd_context.hash("Password"),
         agency_code     = u["agency_code"],
         role            = u["role"]
     )

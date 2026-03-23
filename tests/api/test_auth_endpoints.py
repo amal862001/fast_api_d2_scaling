@@ -1,72 +1,80 @@
+"""
+API integration tests for routers/auth.py
+
+Covers:
+  POST /auth/login
+  GET  /auth/me
+"""
 import pytest
 from tests.conftest import auth_header
 
 
-def test_login_valid_credentials(client):
-    """
-    Valid login must return 200 and an access token.
-    This is the entry point for all platform users.
-    """
-    response = client.post("/auth/login", data={
-        "username": "james@nypd.nyc.gov",
-        "password": "Password"
-    })
-    assert response.status_code == 200
-    assert "access_token" in response.json()
-    assert response.json()["token_type"] == "bearer"
+class TestLogin:
+
+    def test_valid_credentials_return_token(self, client):
+        """Valid login must return 200 with an access token and bearer type."""
+        r = client.post("/auth/login", data={
+            "username": "james@nypd.nyc.gov",
+            "password": "Password"
+        })
+        assert r.status_code == 200
+        assert "access_token" in r.json()
+        assert r.json()["token_type"] == "bearer"
+
+    def test_wrong_password_returns_401(self, client):
+        """Wrong password must return 401 — never 200 or 403."""
+        r = client.post("/auth/login", data={
+            "username": "james@nypd.nyc.gov",
+            "password": "WrongPassword!"
+        })
+        assert r.status_code == 401
+
+    def test_nonexistent_user_returns_401(self, client):
+        """Unknown email must return 401 — must never reveal whether email exists."""
+        r = client.post("/auth/login", data={
+            "username": "nobody@fake.com",
+            "password": "Password123!"
+        })
+        assert r.status_code == 401
+
+    def test_missing_password_returns_422(self, client):
+        """OAuth2 form with no password field must fail validation."""
+        r = client.post("/auth/login", data={"username": "james@nypd.nyc.gov"})
+        assert r.status_code == 422
+
+    def test_empty_credentials_return_422(self, client):
+        """Empty form body must return 422 — not 500."""
+        r = client.post("/auth/login", data={})
+        assert r.status_code == 422
 
 
-def test_login_wrong_password(client):
-    """
-    Wrong password must return 401.
-    If this fails anyone can log in without a password.
-    """
-    response = client.post("/auth/login", data={
-        "username": "james@nypd.nyc.gov",
-        "password": "WrongPassword!"
-    })
-    assert response.status_code == 401
+class TestGetMe:
 
+    def test_valid_token_returns_user_info(self, client, staff_token):
+        """/auth/me with a valid token must return the authenticated user's profile."""
+        r = client.get("/auth/me", headers=auth_header(staff_token))
+        assert r.status_code == 200
+        assert r.json()["email"]       == "james@nypd.nyc.gov"
+        assert r.json()["agency_code"] == "NYPD"
+        assert r.json()["role"]        == "staff"
 
-def test_login_nonexistent_user(client):
-    """
-    A user that doesn't exist must return 401.
-    Must never reveal whether the email exists or not.
-    """
-    response = client.post("/auth/login", data={
-        "username": "nobody@fake.com",
-        "password": "Password123!"
-    })
-    assert response.status_code == 401
+    def test_no_token_returns_401(self, client):
+        """/auth/me without any token must return 401."""
+        r = client.get("/auth/me")
+        assert r.status_code == 401
 
+    def test_invalid_token_returns_401(self, client):
+        """A made-up token string must be rejected with 401."""
+        r = client.get("/auth/me", headers={"Authorization": "Bearer fake.token.here"})
+        assert r.status_code == 401
 
-def test_get_me_with_valid_token(client, staff_token):
-    """
-    /auth/me with a valid token must return the user's info.
-    """
-    response = client.get("/auth/me", headers=auth_header(staff_token))
-    assert response.status_code == 200
-    assert response.json()["email"] == "james@nypd.nyc.gov"
-    assert response.json()["agency_code"] == "NYPD"
+    def test_malformed_auth_header_returns_401(self, client):
+        """Authorization header without 'Bearer' prefix must return 401."""
+        r = client.get("/auth/me", headers={"Authorization": "Token somethingwrong"})
+        assert r.status_code == 401
 
-
-def test_get_me_without_token(client):
-    """
-    /auth/me without a token must return 401.
-    No token = no identity = no access.
-    """
-    response = client.get("/auth/me")
-    assert response.status_code == 401
-
-
-def test_get_me_with_invalid_token(client):
-    """
-    A made-up token must be rejected with 401.
-    """
-    response = client.get(
-        "/auth/me",
-        headers={"Authorization": "Bearer fake.token.here"}
-    )
-    assert response.status_code == 401
-
-    
+    def test_response_does_not_expose_password(self, client, staff_token):
+        """/auth/me must never return hashed_password in the response body."""
+        r = client.get("/auth/me", headers=auth_header(staff_token))
+        assert "hashed_password" not in r.json()
+        assert "password"        not in r.json()

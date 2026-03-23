@@ -24,6 +24,9 @@ COPY . .
 # create uploads directory
 RUN mkdir -p /app/uploads
 
+# set Python path so all modules resolve correctly
+ENV PYTHONPATH=/app
+
 # expose port
 EXPOSE 8000
 

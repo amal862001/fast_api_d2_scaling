@@ -1,4 +1,4 @@
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 from database import get_db
@@ -20,9 +20,30 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 
 
 async def get_current_user(
-    token : str          = Depends(oauth2_scheme),
-    db    : AsyncSession = Depends(get_db)
+    request : Request,
+    token   : str          = Depends(oauth2_scheme),
+    db      : AsyncSession = Depends(get_db)
 ) -> PlatformUser:
+
+    # Accept X-API-Key header as an alternative to Bearer token
+    api_key_value = request.headers.get("X-API-Key")
+    if api_key_value:
+        key_hash = hashlib.sha256(api_key_value.encode()).hexdigest()
+        result   = await db.execute(
+            select(ApiKey).where(ApiKey.key_hash == key_hash)
+        )
+        api_key = result.scalars().first()
+        if not api_key:
+            raise HTTPException(status_code=401, detail="Invalid API key")
+        if api_key.expires_at and api_key.expires_at < datetime.now().replace(tzinfo=None):
+            raise HTTPException(status_code=401, detail="API key expired")
+        user_result = await db.execute(
+            select(PlatformUser).where(PlatformUser.id == api_key.owner_id)
+        )
+        user = user_result.scalars().first()
+        if not user:
+            raise HTTPException(status_code=401, detail="API key owner not found")
+        return user
 
     payload = decode_access_token(token)
     if payload is None:

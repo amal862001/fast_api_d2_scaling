@@ -59,13 +59,15 @@ async def create_api_key(
 ):
     plain_key, prefix, key_hash = _generate_key()
 
+    expires_at = body.expires_at.replace(tzinfo=None) if body.expires_at else None
+
     api_key = ApiKey(
         key_prefix   = prefix,
         key_hash     = key_hash,
         owner_id     = current_user.id,
         scopes       = body.scopes,
-        created_at   = datetime.now().replace(tzinfo=None),
-        expires_at   = body.expires_at,
+        created_at   = datetime.utcnow(),
+        expires_at   = expires_at,
     )
     db.add(api_key)
     await db.commit()
